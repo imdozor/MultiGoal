@@ -15,6 +15,7 @@ staticfiles/
 venv/
 .env/
 .env.*
+.env
 
 # Node / Vite / React
 node_modules/

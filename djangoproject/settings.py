@@ -11,6 +11,18 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# добавить сразу после BASE_DIR
+load_dotenv(BASE_DIR / ".env")
+
+# параметры GigaChat
+GIGACHAT_CREDENTIALS = os.getenv("GIGACHAT_CREDENTIALS")
+GIGACHAT_SCOPE = os.getenv("GIGACHAT_SCOPE", "GIGACHAT_API_PERS")
+GIGACHAT_VERIFY_SSL_CERTS = os.getenv("GIGACHAT_VERIFY_SSL_CERTS", "False") == "True"
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 

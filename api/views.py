@@ -2,11 +2,53 @@
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-
+from django.http import JsonResponse
+from django.views.decorators.http import require_GET
+from .gigachat_client import classify_routes_with_ai
 from .models import City, Order, Ticket
 from .gars_client import get_routes_from_gars, map_gars_to_unified_routes
 
+@require_GET
+def search_routes_ai(request):
+    from_city = request.GET.get("from")
+    to_city = request.GET.get("to")
+    date_str = request.GET.get("date")
 
+    if not from_city or not to_city or not date_str:
+        return JsonResponse(
+            {"error": "Параметры from, to, date обязательны"},
+            status=400,
+        )
+
+    # 1) здесь можно вместо захардкоженных данных вытянуть билеты из БД
+    #    (Ticket.objects.filter(...))
+    routes = [
+        {
+            "id": 1,
+            "mode": "plane",
+            "price_rub": 25200,
+            "duration_min": 600,
+            "transfers": 0,
+        },
+        {
+            "id": 2,
+            "mode": "train",
+            "price_rub": 18000,
+            "duration_min": 1440,
+            "transfers": 1,
+        },
+        {
+            "id": 3,
+            "mode": "bus",
+            "price_rub": 12000,
+            "duration_min": 1800,
+            "transfers": 2,
+        },
+    ]
+
+    routes_ai = classify_routes_with_ai(routes, from_city, to_city, date_str)
+
+    return JsonResponse({"routes": routes_ai})
 @api_view(["GET"])
 def list_cities(request):
     """
@@ -20,24 +62,33 @@ def list_cities(request):
 
 @api_view(["GET"])
 def search_routes(request):
-    """
-    GET /api/routes/search?from_city=&to_city=&date=
-    Поиск маршрутов (пока демо, данные берутся из GARS/заглушки).
-    """
-    from_city = request.GET.get("from_city")
-    to_city = request.GET.get("to_city")
+    from_code = request.GET.get("from_city")
+    to_code = request.GET.get("to_city")
     date = request.GET.get("date")
 
-    if not (from_city and to_city and date):
+    if not (from_code and to_code and date):
         return Response(
             {"detail": "Параметры from_city, to_city и date обязательны"},
             status=400,
         )
 
-    gars_rows = get_routes_from_gars(date_from=date, date_to=date)
-    routes = map_gars_to_unified_routes(gars_rows)
+    from_city = City.objects.filter(code=from_code).first()
+    to_city = City.objects.filter(code=to_code).first()
 
-    return Response({"routes": routes})
+    route = {
+        "id": 1,
+        "mode": "bus",
+        "fromCode": from_code,
+        "toCode": to_code,
+        "fromName": from_city.name if from_city else from_code,
+        "toName": to_city.name if to_city else to_code,
+        "duration": "1H 45M",
+        "price": 25020,
+        "carrier": "Test carrier",
+        "segments": [],
+    }
+
+    return Response({"routes": [route]})
 
 
 @api_view(["POST"])
